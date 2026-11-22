@@ -1,0 +1,6 @@
+{
+  "name": "Helper Adda",
+  "description": "Local daily and permanent job marketplace connecting employers and workers with booking fees, admin controls, chat, ratings, and Hindi/Bengali/English support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

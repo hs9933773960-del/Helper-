@@ -1,0 +1,397 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        ('email' in request.auth.token &&
+         request.auth.token.email == 'sktauseef938433@gmail.com' &&
+         'email_verified' in request.auth.token &&
+         request.auth.token.email_verified == true)
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 60 &&
+             data.phoneNumber is string && data.phoneNumber.size() <= 20 &&
+             data.phoneVerified is bool &&
+             data.email is string && data.email.size() <= 100 &&
+             data.role in ['WORKER', 'EMPLOYER', 'BOTH'] &&
+             data.city is string && data.city.size() <= 60 &&
+             data.area is string && data.area.size() <= 80 &&
+             data.skills is string && data.skills.size() <= 120 &&
+             data.bio is string && data.bio.size() <= 240 &&
+             data.language in ['EN', 'HI', 'BN'] &&
+             data.blocked is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidPublicProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 60 &&
+             data.role in ['WORKER', 'EMPLOYER', 'BOTH'] &&
+             data.city is string && data.city.size() <= 60 &&
+             data.area is string && data.area.size() <= 80 &&
+             data.skills is string && data.skills.size() <= 120 &&
+             data.bio is string && data.bio.size() <= 240 &&
+             data.phoneVerified is bool &&
+             data.blocked is bool &&
+             data.ratingSum is int && data.ratingSum >= 0 &&
+             data.ratingCount is int && data.ratingCount >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidReview(data) {
+      return data.jobId is string && isValidId(data.jobId) &&
+             data.reviewerId is string && data.reviewerId.size() >= 1 && data.reviewerId.size() <= 128 &&
+             data.reviewerName is string && data.reviewerName.size() >= 1 && data.reviewerName.size() <= 60 &&
+             data.targetUserId is string && data.targetUserId.size() >= 1 && data.targetUserId.size() <= 128 &&
+             data.rating is int && data.rating >= 1 && data.rating <= 5 &&
+             data.comment is string && data.comment.size() <= 300 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidPaymentConfig(data) {
+      return data.adminName is string && data.adminName.size() >= 2 && data.adminName.size() <= 80 &&
+             data.upiId is string && data.upiId.size() >= 3 && data.upiId.size() <= 80 &&
+             data.accountNumber is string && data.accountNumber.size() >= 4 && data.accountNumber.size() <= 40 &&
+             data.ifscCode is string && data.ifscCode.size() <= 20 &&
+             data.phonePeNumber is string && data.phonePeNumber.size() <= 20 &&
+             data.employerBookingFee is int && data.employerBookingFee >= 0 && data.employerBookingFee <= 1000 &&
+             data.workerAcceptFee is int && data.workerAcceptFee >= 0 && data.workerAcceptFee <= 1000 &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidJob(data) {
+      return data.employerId is string && data.employerId.size() >= 1 && data.employerId.size() <= 128 &&
+             data.employerName is string && data.employerName.size() >= 2 && data.employerName.size() <= 60 &&
+             data.title is string && data.title.size() >= 3 && data.title.size() <= 80 &&
+             data.description is string && data.description.size() >= 5 && data.description.size() <= 400 &&
+             data.category is string && data.category.size() >= 2 && data.category.size() <= 40 &&
+             data.jobType in ['DAILY', 'PERMANENT'] &&
+             data.wageAmount is int && data.wageAmount >= 50 && data.wageAmount <= 500000 &&
+             data.wagePeriod in ['PER_DAY', 'PER_MONTH'] &&
+             data.city is string && data.city.size() >= 2 && data.city.size() <= 60 &&
+             data.area is string && data.area.size() <= 80 &&
+             (!('latitude' in data) || data.latitude is number) &&
+             (!('longitude' in data) || data.longitude is number) &&
+             data.status in ['OPEN', 'ACCEPTED', 'COMPLETED', 'CANCELLED'] &&
+             data.bookingFeePaid is bool &&
+             data.bookingFeeRef is string && data.bookingFeeRef.size() >= 3 && data.bookingFeeRef.size() <= 80 &&
+             (!('acceptedWorkerId' in data) || (data.acceptedWorkerId is string && data.acceptedWorkerId.size() >= 1 && data.acceptedWorkerId.size() <= 128)) &&
+             (!('acceptedWorkerName' in data) || (data.acceptedWorkerName is string && data.acceptedWorkerName.size() >= 1 && data.acceptedWorkerName.size() <= 60)) &&
+             data.workerFeePaid is bool &&
+             (!('workerFeeRef' in data) || (data.workerFeeRef is string && data.workerFeeRef.size() >= 3 && data.workerFeeRef.size() <= 80)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidJobContact(data) {
+      return data.jobId is string && isValidId(data.jobId) &&
+             data.employerId is string && data.employerId.size() >= 1 && data.employerId.size() <= 128 &&
+             data.employerPhone is string && data.employerPhone.size() <= 20 &&
+             (!('workerId' in data) || (data.workerId is string && data.workerId.size() >= 1 && data.workerId.size() <= 128)) &&
+             (!('workerPhone' in data) || (data.workerPhone is string && data.workerPhone.size() <= 20)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidPaymentRecord(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.userName is string && data.userName.size() >= 1 && data.userName.size() <= 60 &&
+             data.userRole in ['EMPLOYER', 'WORKER'] &&
+             data.feeType in ['JOB_POST_FEE', 'JOB_ACCEPT_FEE'] &&
+             data.amount is int && data.amount >= 0 && data.amount <= 1000 &&
+             data.paymentApp in ['PhonePe', 'Paytm', 'GPay', 'UPI'] &&
+             data.transactionRef is string && data.transactionRef.size() >= 3 && data.transactionRef.size() <= 80 &&
+             data.jobId is string && isValidId(data.jobId) &&
+             data.jobTitle is string && data.jobTitle.size() >= 1 && data.jobTitle.size() <= 80 &&
+             data.status in ['PENDING', 'VERIFIED', 'REJECTED'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChatThread(data) {
+      return data.jobId is string && isValidId(data.jobId) &&
+             data.jobTitle is string && data.jobTitle.size() >= 1 && data.jobTitle.size() <= 80 &&
+             data.employerId is string && data.employerId.size() >= 1 && data.employerId.size() <= 128 &&
+             data.employerName is string && data.employerName.size() >= 1 && data.employerName.size() <= 60 &&
+             data.workerId is string && data.workerId.size() >= 1 && data.workerId.size() <= 128 &&
+             data.workerName is string && data.workerName.size() >= 1 && data.workerName.size() <= 60 &&
+             data.memberUids is list && data.memberUids.size() == 2 &&
+             (data.memberUids[0] is string) && (data.memberUids[1] is string) &&
+             data.lastMessage is string && data.lastMessage.size() <= 300 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChatMessage(data) {
+      return data.chatId is string && isValidId(data.chatId) &&
+             data.senderId is string && data.senderId.size() >= 1 && data.senderId.size() <= 128 &&
+             data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 60 &&
+             data.memberUids is list && data.memberUids.size() == 2 &&
+             (data.memberUids[0] is string) && (data.memberUids[1] is string) &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 500 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    // 1. Admins registry (read-only self check; managed server-side / console)
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    // 2. Private user PII profile
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().blocked == false &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'phoneNumber', 'phoneVerified', 'email', 'role', 'city', 'area', 'skills', 'bio', 'language', 'blocked', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'phoneNumber', 'phoneVerified', 'email', 'role', 'city', 'area', 'skills', 'bio', 'language', 'blocked', 'createdAt', 'updatedAt']);
+      allow update: if isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt && (
+                         (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['blocked', 'phoneVerified', 'updatedAt'])) ||
+                         (isOwner(userId) &&
+                          incoming().blocked == existing().blocked &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'phoneNumber', 'phoneVerified', 'email', 'role', 'city', 'area', 'skills', 'bio', 'language', 'updatedAt']))
+                       );
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // 3. Public non-PII profile + reviews subcollection
+    match /public_profiles/{userId} {
+      allow get: if isSignedIn() && isValidId(userId);
+      allow list: if isSignedIn() && (resource.data.blocked == false || isAdmin());
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       isValidPublicProfile(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().blocked == false &&
+                       incoming().ratingSum == 0 &&
+                       incoming().ratingCount == 0 &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'role', 'city', 'area', 'skills', 'bio', 'phoneVerified', 'blocked', 'ratingSum', 'ratingCount', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'role', 'city', 'area', 'skills', 'bio', 'phoneVerified', 'blocked', 'ratingSum', 'ratingCount', 'createdAt', 'updatedAt']);
+      allow update: if isValidId(userId) &&
+                       isSignedIn() &&
+                       isValidPublicProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt && (
+                         (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['blocked', 'phoneVerified', 'updatedAt'])) ||
+                         (isOwner(userId) &&
+                          incoming().blocked == existing().blocked &&
+                          incoming().ratingSum == existing().ratingSum &&
+                          incoming().ratingCount == existing().ratingCount &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'role', 'city', 'area', 'skills', 'bio', 'phoneVerified', 'updatedAt'])) ||
+                         (request.auth.uid != userId &&
+                          incoming().blocked == existing().blocked &&
+                          incoming().ratingSum >= existing().ratingSum + 1 &&
+                          incoming().ratingSum <= existing().ratingSum + 5 &&
+                          incoming().ratingCount == existing().ratingCount + 1 &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['ratingSum', 'ratingCount', 'updatedAt']))
+                       );
+      allow delete: if isValidId(userId) && isAdmin();
+
+      match /reviews/{reviewId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(reviewId);
+        allow list: if isSignedIn() && isValidId(userId);
+        allow create: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(reviewId) &&
+                         isValidReview(incoming()) &&
+                         incoming().reviewerId == request.auth.uid &&
+                         incoming().targetUserId == userId &&
+                         incoming().reviewerId != userId &&
+                         exists(/databases/$(database)/documents/jobs/$(incoming().jobId)) &&
+                         incoming().keys().hasAll(['jobId', 'reviewerId', 'reviewerName', 'targetUserId', 'rating', 'comment', 'createdAt']) &&
+                         incoming().keys().hasOnly(['jobId', 'reviewerId', 'reviewerName', 'targetUserId', 'rating', 'comment', 'createdAt']);
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(reviewId) && isAdmin();
+      }
+    }
+
+    // 4. App payment configuration (Admin sets UPI/Account/Fee; signed-in users read)
+    match /app_config/{docId} {
+      allow get: if isSignedIn() && docId == 'payments';
+      allow list: if false;
+      allow create, update: if docId == 'payments' &&
+                               isAdmin() &&
+                               isValidPaymentConfig(incoming()) &&
+                               incoming().keys().hasAll(['adminName', 'upiId', 'accountNumber', 'ifscCode', 'phonePeNumber', 'employerBookingFee', 'workerAcceptFee', 'updatedAt']) &&
+                               incoming().keys().hasOnly(['adminName', 'upiId', 'accountNumber', 'ifscCode', 'phonePeNumber', 'employerBookingFee', 'workerAcceptFee', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // 5. Jobs collection (Daily & Permanent)
+    match /jobs/{jobId} {
+      allow get: if isSignedIn() && isValidId(jobId);
+      allow list: if isSignedIn() && (
+        resource.data.status == 'OPEN' ||
+        resource.data.employerId == request.auth.uid ||
+        resource.data.acceptedWorkerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() &&
+                       isValidId(jobId) &&
+                       isValidJob(incoming()) &&
+                       incoming().employerId == request.auth.uid &&
+                       incoming().status == 'OPEN' &&
+                       incoming().bookingFeePaid == true &&
+                       incoming().workerFeePaid == false &&
+                       !('acceptedWorkerId' in incoming()) &&
+                       !('acceptedWorkerName' in incoming()) &&
+                       !('workerFeeRef' in incoming()) &&
+                       incoming().keys().hasAll(['employerId', 'employerName', 'title', 'description', 'category', 'jobType', 'wageAmount', 'wagePeriod', 'city', 'area', 'status', 'bookingFeePaid', 'bookingFeeRef', 'workerFeePaid', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['employerId', 'employerName', 'title', 'description', 'category', 'jobType', 'wageAmount', 'wagePeriod', 'city', 'area', 'latitude', 'longitude', 'status', 'bookingFeePaid', 'bookingFeeRef', 'workerFeePaid', 'createdAt', 'updatedAt']);
+      allow update: if isSignedIn() &&
+                       isValidId(jobId) &&
+                       isValidJob(incoming()) &&
+                       incoming().employerId == existing().employerId &&
+                       incoming().createdAt == existing().createdAt && (
+                         isAdmin() ||
+                         (existing().employerId == request.auth.uid &&
+                          existing().status in ['OPEN', 'ACCEPTED'] &&
+                          incoming().status in ['OPEN', 'COMPLETED', 'CANCELLED'] &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'jobType', 'wageAmount', 'wagePeriod', 'city', 'area', 'status', 'updatedAt'])) ||
+                         (existing().status == 'OPEN' &&
+                          existing().employerId != request.auth.uid &&
+                          incoming().status == 'ACCEPTED' &&
+                          incoming().acceptedWorkerId == request.auth.uid &&
+                          incoming().workerFeePaid == true &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'acceptedWorkerId', 'acceptedWorkerName', 'workerFeePaid', 'workerFeeRef', 'updatedAt']))
+                       );
+      allow delete: if isSignedIn() && isValidId(jobId) && (isAdmin() || (existing().employerId == request.auth.uid && existing().status == 'OPEN'));
+    }
+
+    // 6. Private Job Contact details (only Employer, Accepted Worker, or Admin)
+    match /job_contacts/{jobId} {
+      allow get: if isSignedIn() && isValidId(jobId) && (
+        resource.data.employerId == request.auth.uid ||
+        resource.data.workerId == request.auth.uid ||
+        get(/databases/$(database)/documents/jobs/$(jobId)).data.acceptedWorkerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if false;
+      allow create: if isSignedIn() &&
+                       isValidId(jobId) &&
+                       isValidJobContact(incoming()) &&
+                       incoming().jobId == jobId &&
+                       incoming().employerId == request.auth.uid &&
+                       !('workerId' in incoming()) &&
+                       !('workerPhone' in incoming()) &&
+                       incoming().keys().hasAll(['jobId', 'employerId', 'employerPhone', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['jobId', 'employerId', 'employerPhone', 'createdAt', 'updatedAt']);
+      allow update: if isSignedIn() &&
+                       isValidId(jobId) &&
+                       isValidJobContact(incoming()) &&
+                       incoming().jobId == existing().jobId &&
+                       incoming().employerId == existing().employerId &&
+                       incoming().createdAt == existing().createdAt && (
+                         isAdmin() ||
+                         (existing().employerId == request.auth.uid &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['employerPhone', 'updatedAt'])) ||
+                         (incoming().workerId == request.auth.uid &&
+                          getAfter(/databases/$(database)/documents/jobs/$(jobId)).data.acceptedWorkerId == request.auth.uid &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['workerId', 'workerPhone', 'updatedAt']))
+                       );
+      allow delete: if isValidId(jobId) && isAdmin();
+    }
+
+    // 7. Payment records (₹10 booking & accept fees)
+    match /payments/{paymentId} {
+      allow get: if isSignedIn() && isValidId(paymentId) && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() &&
+                       isValidId(paymentId) &&
+                       isValidPaymentRecord(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().status == 'PENDING' &&
+                       incoming().keys().hasAll(['userId', 'userName', 'userRole', 'feeType', 'amount', 'paymentApp', 'transactionRef', 'jobId', 'jobTitle', 'status', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'userName', 'userRole', 'feeType', 'amount', 'paymentApp', 'transactionRef', 'jobId', 'jobTitle', 'status', 'createdAt', 'updatedAt']);
+      allow update: if isAdmin() &&
+                       isValidId(paymentId) &&
+                       isValidPaymentRecord(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if isValidId(paymentId) && isAdmin();
+    }
+
+    // 8. Chats and Messages
+    match /chats/{chatId} {
+      allow get: if isSignedIn() && isValidId(chatId) && (request.auth.uid in resource.data.memberUids || isAdmin());
+      allow list: if isSignedIn() && (request.auth.uid in resource.data.memberUids || isAdmin());
+      allow create: if isSignedIn() &&
+                       isValidId(chatId) &&
+                       isValidChatThread(incoming()) &&
+                       incoming().jobId == chatId &&
+                       request.auth.uid in incoming().memberUids &&
+                       incoming().employerId in incoming().memberUids &&
+                       incoming().workerId in incoming().memberUids &&
+                       incoming().keys().hasAll(['jobId', 'jobTitle', 'employerId', 'employerName', 'workerId', 'workerName', 'memberUids', 'lastMessage', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['jobId', 'jobTitle', 'employerId', 'employerName', 'workerId', 'workerName', 'memberUids', 'lastMessage', 'createdAt', 'updatedAt']);
+      allow update: if isSignedIn() &&
+                       isValidId(chatId) &&
+                       isValidChatThread(incoming()) &&
+                       request.auth.uid in existing().memberUids &&
+                       incoming().jobId == existing().jobId &&
+                       incoming().employerId == existing().employerId &&
+                       incoming().workerId == existing().workerId &&
+                       incoming().memberUids == existing().memberUids &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'updatedAt']);
+      allow delete: if isValidId(chatId) && isAdmin();
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(chatId) && isValidId(messageId) && (request.auth.uid in resource.data.memberUids || isAdmin());
+        allow list: if isSignedIn() && isValidId(chatId) && (request.auth.uid in resource.data.memberUids || isAdmin());
+        allow create: if isSignedIn() &&
+                         isValidId(chatId) &&
+                         isValidId(messageId) &&
+                         isValidChatMessage(incoming()) &&
+                         incoming().chatId == chatId &&
+                         incoming().senderId == request.auth.uid &&
+                         request.auth.uid in incoming().memberUids &&
+                         exists(/databases/$(database)/documents/chats/$(chatId)) &&
+                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.memberUids &&
+                         incoming().memberUids == get(/databases/$(database)/documents/chats/$(chatId)).data.memberUids &&
+                         incoming().keys().hasAll(['chatId', 'senderId', 'senderName', 'memberUids', 'text', 'createdAt']) &&
+                         incoming().keys().hasOnly(['chatId', 'senderId', 'senderName', 'memberUids', 'text', 'createdAt']);
+        allow update, delete: if false;
+      }
+    }
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user account and PII profile for Helper Adda (employers and workers).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "Full name" },
+        "phoneNumber": { "type": "string", "description": "10-digit mobile number" },
+        "phoneVerified": { "type": "boolean", "description": "Mobile verification status" },
+        "email": { "type": "string", "description": "Google account email" },
+        "role": { "type": "string", "enum": ["WORKER", "EMPLOYER", "BOTH"] },
+        "city": { "type": "string", "description": "User city" },
+        "area": { "type": "string", "description": "Locality or neighborhood" },
+        "skills": { "type": "string", "description": "Worker trade/skills" },
+        "bio": { "type": "string", "description": "Short bio" },
+        "language": { "type": "string", "enum": ["EN", "HI", "BN"] },
+        "blocked": { "type": "boolean", "description": "Admin moderation lock flag" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "displayName", "phoneNumber", "phoneVerified", "email", "role", "city", "area", "skills", "bio", "language", "blocked", "createdAt", "updatedAt"]
+    },
+    "PublicProfile": {
+      "title": "PublicProfile",
+      "description": "Public non-PII worker/employer card and aggregated rating metrics.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["WORKER", "EMPLOYER", "BOTH"] },
+        "city": { "type": "string" },
+        "area": { "type": "string" },
+        "skills": { "type": "string" },
+        "bio": { "type": "string" },
+        "phoneVerified": { "type": "boolean" },
+        "blocked": { "type": "boolean" },
+        "ratingSum": { "type": "integer" },
+        "ratingCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "role", "city", "area", "skills", "bio", "phoneVerified", "blocked", "ratingSum", "ratingCount", "createdAt", "updatedAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Rating and review left after job acceptance/completion.",
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "string" },
+        "reviewerId": { "type": "string" },
+        "reviewerName": { "type": "string" },
+        "targetUserId": { "type": "string" },
+        "rating": { "type": "integer" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["jobId", "reviewerId", "reviewerName", "targetUserId", "rating", "comment", "createdAt"]
+    },
+    "PaymentConfig": {
+      "title": "PaymentConfig",
+      "description": "Admin payment account configuration for ₹10 booking and accept charges.",
+      "type": "object",
+      "properties": {
+        "adminName": { "type": "string" },
+        "upiId": { "type": "string" },
+        "accountNumber": { "type": "string" },
+        "ifscCode": { "type": "string" },
+        "phonePeNumber": { "type": "string" },
+        "employerBookingFee": { "type": "integer" },
+        "workerAcceptFee": { "type": "integer" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["adminName", "upiId", "accountNumber", "ifscCode", "phonePeNumber", "employerBookingFee", "workerAcceptFee", "updatedAt"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "Daily or permanent job posting with booking and acceptance state.",
+      "type": "object",
+      "properties": {
+        "employerId": { "type": "string" },
+        "employerName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "jobType": { "type": "string", "enum": ["DAILY", "PERMANENT"] },
+        "wageAmount": { "type": "integer" },
+        "wagePeriod": { "type": "string", "enum": ["PER_DAY", "PER_MONTH"] },
+        "city": { "type": "string" },
+        "area": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "status": { "type": "string", "enum": ["OPEN", "ACCEPTED", "COMPLETED", "CANCELLED"] },
+        "bookingFeePaid": { "type": "boolean" },
+        "bookingFeeRef": { "type": "string" },
+        "acceptedWorkerId": { "type": "string" },
+        "acceptedWorkerName": { "type": "string" },
+        "workerFeePaid": { "type": "boolean" },
+        "workerFeeRef": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["employerId", "employerName", "title", "description", "category", "jobType", "wageAmount", "wagePeriod", "city", "area", "status", "bookingFeePaid", "bookingFeeRef", "workerFeePaid", "createdAt", "updatedAt"]
+    },
+    "JobContact": {
+      "title": "JobContact",
+      "description": "Private phone contact mapping revealed only to employer, accepted worker, and admin.",
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "string" },
+        "employerId": { "type": "string" },
+        "employerPhone": { "type": "string" },
+        "workerId": { "type": "string" },
+        "workerPhone": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["jobId", "employerId", "employerPhone", "createdAt", "updatedAt"]
+    },
+    "PaymentRecord": {
+      "title": "PaymentRecord",
+      "description": "₹10 booking/accept payment record for Admin verification.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userRole": { "type": "string", "enum": ["EMPLOYER", "WORKER"] },
+        "feeType": { "type": "string", "enum": ["JOB_POST_FEE", "JOB_ACCEPT_FEE"] },
+        "amount": { "type": "integer" },
+        "paymentApp": { "type": "string", "enum": ["PhonePe", "Paytm", "GPay", "UPI"] },
+        "transactionRef": { "type": "string" },
+        "jobId": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "VERIFIED", "REJECTED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "userRole", "feeType", "amount", "paymentApp", "transactionRef", "jobId", "jobTitle", "status", "createdAt", "updatedAt"]
+    },
+    "ChatThread": {
+      "title": "ChatThread",
+      "description": "Direct chat metadata between employer and accepted worker.",
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "employerId": { "type": "string" },
+        "employerName": { "type": "string" },
+        "workerId": { "type": "string" },
+        "workerName": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "lastMessage": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["jobId", "jobTitle", "employerId", "employerName", "workerId", "workerName", "memberUids", "lastMessage", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Individual message inside a job chat thread.",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["chatId", "senderId", "senderName", "memberUids", "text", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user PII profiles"
+    },
+    "/public_profiles/{userId}": {
+      "schema": { "$ref": "#/entities/PublicProfile" },
+      "description": "Public worker/employer profiles and ratings"
+    },
+    "/public_profiles/{userId}/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Reviews received by a worker or employer"
+    },
+    "/app_config/payments": {
+      "schema": { "$ref": "#/entities/PaymentConfig" },
+      "description": "Admin UPI/Bank account and ₹10 charge configuration"
+    },
+    "/jobs/{jobId}": {
+      "schema": { "$ref": "#/entities/Job" },
+      "description": "Daily and permanent job postings"
+    },
+    "/job_contacts/{jobId}": {
+      "schema": { "$ref": "#/entities/JobContact" },
+      "description": "Private phone contacts for accepted jobs"
+    },
+    "/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/PaymentRecord" },
+      "description": "₹10 booking and accept fee records"
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/ChatThread" },
+      "description": "Chat threads between employer and accepted worker"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Messages in a job chat thread"
+    }
+  }
+}
